@@ -1,0 +1,14 @@
+{
+  "name": "android-rfcomm",
+  "description": "Use Android's Bluetooth capabilities to remote-control an app on your computer.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/corwin-of-amber/android-rc.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "node-bluetooth": "github:corwin-of-amber/node-bluetooth",
+    "robotjs": "^0.4.5",
+    "sleep": "^5.0.0"
+  }
+}
