@@ -40,9 +40,35 @@ function readCallback(conn, err, data) {
   }
   else {
     console.log(data);
-    robot.keyTap("space");
+    if (data[0] == 0x3f)
+      robot.keyTap("left");
+    else
+      robot.keyTap("space");
     conn.port.read((err, data) => { readCallback(conn, err, data) });
   }
+}
+
+function findServiceChannel(address, serviceName) {
+  var channel = null;
+
+  // Assumes that listPairedDevices is sync :\
+  deviceinq.listPairedDevices(devices => { 
+    for (var i = 0; i < devices.length; i++) {
+      var device = devices[i];
+      if (device.address == address) {
+        console.log(device);
+        for (i = 0; i < device.services.length; i++) {
+          var service = device.services[i];
+          if (service.name == serviceName) {
+            channel = service.channel;
+            return;
+          }
+        }
+      }
+    }
+  });
+
+  return channel;
 }
 
 // My devices <3
@@ -57,48 +83,40 @@ function connect(address) {
     
     console.log('Found RFCOMM channel for serial port on %s: ', address, channel);
  
-    sleep.sleep(2); // annoying; better way to sync?
+    function try_connect(retries) {
     
-deviceinq.listPairedDevices(devices => { 
-  for (var i = 0; i < devices.length; i++) {
-    var dv = devices[i];
-    console.log(dv);
-  } 
-  pairedDevices = devices;
-  });
+      channel = findServiceChannel(address, "Corwin of Amber");
 
-  console.log("===");
+      console.log("===");
 
-  for (var i = 0; i < pairedDevices.length; i++) {
-    var device = pairedDevices[i];
-    if (device.address == address) {
-      for (i = 0; i < device.services.length; i++) {
-        var service = device.services[i];
-        if (service.name == "Corwin of Amber") {
-          channel = service.channel;
-        }
+      if (!channel) {
+        console.error("Service not found.");
+        return;
       }
+
+      bluetooth.connect(address, channel, (err, conn) => {
+        if (err) {
+          console.log("Connection failed; ", err);
+          if (retries > 0) {
+            console.log("retry...");
+            setTimeout(() => { try_connect(retries - 1); }, 1000);
+          }
+        }
+        else
+        if (conn) {
+          console.log("Connected;", conn);
+          conn.port.read((err, data) => { readCallback(conn, err, data) });
+        /*
+         conn.write(new Buffer("2345"), (err, result) => { 
+         console.log("wrote", err, result) 
+         });
+         */
+        }
+      });
     }
-  }
 
-  if (!channel) {
-    console.error("Service not found.");
-    return;
-  }
-
-//console.log(pairedDevices);
-
-  bluetooth.connect(address, channel, (err, conn) => {
-  console.log("Connected;", err, conn);
-  if (conn) {
-    conn.port.read((err, data) => { readCallback(conn, err, data) });
-    /*
-    conn.write(new Buffer("2345"), (err, result) => { 
-     console.log("wrote", err, result) 
-    });
-    */
-  }
-  });
+    //sleep.sleep(2);
+    try_connect(3);
 
   });
 }

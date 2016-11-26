@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.ComponentName;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -29,6 +31,11 @@ public class MainActivity extends Activity { //AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Hide the status bar
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         setContentView(R.layout.activity_main);
 
         new AcceptThread().start();
@@ -62,7 +69,6 @@ public class MainActivity extends Activity { //AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.i(TAG, "keycode = " + keyCode);
         if( keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
             keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
             keyCode == KeyEvent.KEYCODE_FOCUS)
@@ -160,12 +166,13 @@ public class MainActivity extends Activity { //AppCompatActivity {
         }
 
         private void listen() {
-            if (mmServerSocket != null) {
+            /*if (mmServerSocket != null) {
                 try { mmServerSocket.close(); } catch (IOException e) { e.printStackTrace(); }
                 mmServerSocket = null;
-            }
+            }*/
             try {
-                mmServerSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
+                if (mmServerSocket == null)
+                    mmServerSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -179,22 +186,22 @@ public class MainActivity extends Activity { //AppCompatActivity {
             while (true) {
                 try {
                     socket = mmServerSocket.accept();
+                    //mmServerSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                     //break;
-                    listen();
                 }
                 // If a connection was accepted
                 if (socket != null) {
                     // Do work to manage the connection (in a separate thread)
                     manageConnectedSocket(socket);
                     try {
-                        mmServerSocket.close();
+                        socket.close();
                     }
                     catch (IOException e) { e.printStackTrace(); }
                     //break;
-                    listen(); // go back to listen mode
                 }
+                listen(); // go back to listen mode
             }
         }
 
@@ -212,11 +219,12 @@ public class MainActivity extends Activity { //AppCompatActivity {
     }
 
     private void manageConnectedSocket(BluetoothSocket socket) {
+        final TextView status = (TextView) findViewById(R.id.status);
         final String remoteName = socket.getRemoteDevice().getName();
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this, "Connected from " + remoteName, Toast.LENGTH_LONG).show();
+                status.setText("Connected to " + remoteName + ".");
             }
         });
 
@@ -244,7 +252,7 @@ public class MainActivity extends Activity { //AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this, "Data ended.", Toast.LENGTH_LONG).show();
+                status.setText("Not connected.");
             }
         });
     }
