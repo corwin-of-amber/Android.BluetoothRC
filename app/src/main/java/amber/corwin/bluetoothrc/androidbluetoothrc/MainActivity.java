@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.support.v7.app.AppCompatActivity;
+//import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -166,6 +166,8 @@ public class MainActivity extends Activity { //AppCompatActivity {
         }
 
         private void listen() {
+            if (mBluetoothAdapter == null) { abortBluetooth("No Bluetooth device."); return; }
+
             /*if (mmServerSocket != null) {
                 try { mmServerSocket.close(); } catch (IOException e) { e.printStackTrace(); }
                 mmServerSocket = null;
@@ -175,11 +177,12 @@ public class MainActivity extends Activity { //AppCompatActivity {
                     mmServerSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
             } catch (IOException e) {
                 e.printStackTrace();
+                abortBluetooth("Bluetooth access error.");
             }
         }
 
         public void run() {
-            if (mmServerSocket == null) return;
+            if (mmServerSocket == null) return;  /* TODO wait and retry? */
 
             BluetoothSocket socket = null;
             // Keep listening until exception occurs or a socket is returned
@@ -216,6 +219,15 @@ public class MainActivity extends Activity { //AppCompatActivity {
             } catch (IOException e) {
             }
         }
+    }
+
+    private void abortBluetooth(final String msg) {
+        final TextView status = (TextView) findViewById(R.id.status);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() { status.setText(msg);
+            }
+        });
     }
 
     private void manageConnectedSocket(BluetoothSocket socket) {
