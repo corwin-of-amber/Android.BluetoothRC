@@ -1,15 +1,23 @@
 package amber.corwin.bluetoothrc.androidbluetoothrc;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 //import android.support.v7.app.AppCompatActivity;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebMessage;
+import android.webkit.WebMessagePort;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,12 +29,12 @@ import java.io.OutputStream;
 import java.util.UUID;
 
 
-public class MainActivity extends Activity { //AppCompatActivity {
+public class MainActivity extends Activity {
 
     private static final String TAG = "BluetoothApp";
 
     private static String NAME = "Corwin of Amber";
-    private static UUID MY_UUID = new UUID(0x000d7b398cfa46a9l, 0xbc70030b09f60869l);
+    private static UUID MY_UUID = new UUID(0x000d7b398cfa46a9L, 0xbc70030b09f60869L);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,9 +46,11 @@ public class MainActivity extends Activity { //AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        new AcceptThread().start();
+        //new AcceptThread().start();
 
         //new GetEventThread().start();
+
+        navigateToPresenter();
     }
 
     // ---------
@@ -121,6 +131,11 @@ public class MainActivity extends Activity { //AppCompatActivity {
     }
     private void emitCameraSoft() { emit(new byte[] { 20, 20, 20 }); }
 
+    /*
+
+     * Temporarily handled by the Presenter UI part.
+     * TODO dispatch according to mode switch
+     *
     private void emit(byte[] buf) {
         if (btOut != null) {
             try {
@@ -130,6 +145,7 @@ public class MainActivity extends Activity { //AppCompatActivity {
             }
         }
     }
+    */
 
     // ---------------------
     // Bluetooth Server Part
@@ -267,5 +283,27 @@ public class MainActivity extends Activity { //AppCompatActivity {
                 status.setText("Not connected.");
             }
         });
+    }
+
+
+    // -----------------
+    // Presenter UI Part
+    // -----------------
+
+    WebMessagePort wmport;
+
+    private void navigateToPresenter() {
+        final WebView wv = (WebView) findViewById(R.id.presenter_ui);
+        wv.setWebViewClient(new WebViewClient());
+        WebSettings settings = wv.getSettings();
+        settings.setJavaScriptEnabled(true);
+        wv.loadUrl("http://localhost:8008");
+        //wv.loadDataWithBaseURL("http://localhost:8008", "<html><script>onmessage = function(msg) { document.getElementsByTagName('button')[0].innerText = msg.data; }</script><body><button>Button</button></body></html>", "text/html", "UTF-8", null);
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    void emit(byte[] payload) {
+        final WebView wv = (WebView) findViewById(R.id.presenter_ui);
+        wv.postWebMessage(new WebMessage(new String(payload)), Uri.EMPTY);
     }
 }
