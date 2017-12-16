@@ -6,13 +6,16 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 //import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebChromeClient;
 import android.webkit.WebMessage;
 import android.webkit.WebMessagePort;
 import android.webkit.WebSettings;
@@ -79,16 +82,23 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if( keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-            keyCode == KeyEvent.KEYCODE_FOCUS)
-        {
-            event.startTracking();
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) emitVolumeUp();
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) emitVolumeDown();
-            if (keyCode == KeyEvent.KEYCODE_FOCUS) emitCameraSoft();
+        switch (keyCode) {
+        case KeyEvent.KEYCODE_VOLUME_UP:
+            event.startTracking(); emitVolumeUp(); return true;
+        case KeyEvent.KEYCODE_VOLUME_DOWN:
+            event.startTracking(); emitVolumeDown(); return true;
+        case KeyEvent.KEYCODE_FOCUS:
+        case KeyEvent.KEYCODE_CAMERA:
+            event.startTracking(); emitCameraSoft(); return true;
+
+        case KeyEvent.KEYCODE_MENU:
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
+
+        default:
+            Toast.makeText(this, "Key code: " + keyCode, Toast.LENGTH_SHORT).show();
         }
+
         return super.onKeyDown(keyCode, event);
     }
 
@@ -293,17 +303,35 @@ public class MainActivity extends Activity {
     WebMessagePort wmport;
 
     private void navigateToPresenter() {
+        String hostname = PreferenceManager.getDefaultSharedPreferences(this).getString("http_server", "localhost");
+        int port = 8008;
+
         final WebView wv = (WebView) findViewById(R.id.presenter_ui);
         wv.setWebViewClient(new WebViewClient());
         WebSettings settings = wv.getSettings();
         settings.setJavaScriptEnabled(true);
-        wv.loadUrl("http://localhost:8008");
+        wv.loadUrl("http://" + hostname + ":" + port);
+        wv.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                if (newProgress == 100) {
+                    Toast.makeText(MainActivity.this, "page loaded", Toast.LENGTH_SHORT).show();
+                    postMessage("{'settings': {'toolbar-size': 6}}");
+                }
+            }
+        });
         //wv.loadDataWithBaseURL("http://localhost:8008", "<html><script>onmessage = function(msg) { document.getElementsByTagName('button')[0].innerText = msg.data; }</script><body><button>Button</button></body></html>", "text/html", "UTF-8", null);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
     void emit(byte[] payload) {
+        postMessage(new String(payload));
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    void postMessage(String payload) {
         final WebView wv = (WebView) findViewById(R.id.presenter_ui);
-        wv.postWebMessage(new WebMessage(new String(payload)), Uri.EMPTY);
+        wv.postWebMessage(new WebMessage(payload), Uri.EMPTY);
     }
 }

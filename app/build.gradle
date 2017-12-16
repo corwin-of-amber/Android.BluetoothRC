@@ -2,14 +2,15 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '26.0.1'
+    buildToolsVersion '27.0.2'
     defaultConfig {
         applicationId "amber.corwin.bluetoothrc.androidbluetoothrc"
-        minSdkVersion 10
+        minSdkVersion 11
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
@@ -17,7 +18,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    productFlavors {
+    }
 }
 
 dependencies {
+    compile 'com.android.support:support-v4:23.4.0'
+    compile 'com.android.support:support-vector-drawable:23.4.0'
 }
